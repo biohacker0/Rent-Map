@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>India Rent Prices Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #mapid {
+            height: 600px;
+            width: 800px;
+        }
+    </style>
+</head>
+<body>
+    <div id="mapid"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('mapid').setView([20.5937, 78.9629], 5); // Set initial view to India
+        var markers = {};
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+        }).addTo(map);
+
+        map.on('click', function(e) {
+            var popupContent = '<form id="popupForm">' +
+                                   '<label for="rentPrice">Enter Rent Price:</label>' +
+                                   '<input type="number" id="rentPrice">' +
+                                   '<input type="submit" value="Submit">' +
+                               '</form>';
+
+            var popup = L.popup()
+                .setLatLng(e.latlng)
+                .setContent(popupContent)
+                .openOn(map);
+
+            document.getElementById('popupForm').onsubmit = function() {
+                var rentPrice = parseFloat(document.getElementById('rentPrice').value);
+                var latlngKey = e.latlng.toString();
+
+                if (!markers[latlngKey]) {
+                    markers[latlngKey] = {
+                        count: 0,
+                        totalRent: 0,
+                        averageRent: 0,
+                        marker: null
+                    };
+                }
+
+                markers[latlngKey].count++;
+                markers[latlngKey].totalRent += rentPrice;
+                markers[latlngKey].averageRent = markers[latlngKey].totalRent / markers[latlngKey].count;
+
+                var rentPopupContent = 'Average Rent Price: ' + markers[latlngKey].averageRent.toFixed(2);
+                
+                if(markers[latlngKey].marker) {
+                    markers[latlngKey].marker.setPopupContent(rentPopupContent).openPopup();
+                } else {
+                    var marker = L.marker(e.latlng).addTo(map)
+                        .bindPopup(rentPopupContent)
+                        .openPopup();
+                    markers[latlngKey].marker = marker;
+                    marker.on('click', function() {
+                        var newRentPrice = parseFloat(prompt('Enter new rent price:', markers[latlngKey].averageRent.toFixed(2)));
+                        if (!isNaN(newRentPrice)) {
+                            markers[latlngKey].totalRent += newRentPrice;
+                            markers[latlngKey].count++;
+                            markers[latlngKey].averageRent = markers[latlngKey].totalRent / markers[latlngKey].count;
+
+                            var rentPopupContent = 'Average Rent Price: ' + markers[latlngKey].averageRent.toFixed(2);
+                            markers[latlngKey].marker.setPopupContent(rentPopupContent).openPopup();
+                        }
+                    });
+                }
+
+                return false; // Prevent form submission
+            };
+        });
+    </script>
+</body>
+</html>
